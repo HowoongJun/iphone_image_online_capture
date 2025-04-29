@@ -64,8 +64,10 @@ class CNerfCapture():
             readOutData.DepthImg = self.__oSample.depth_image
             
             self.__oImg = np.asarray(self.__oSample.image, dtype=np.uint8).reshape(self.__oSample.height, self.__oSample.width, 3)
+            self.__oImg = cv2.rotate(self.__oImg, cv2.ROTATE_90_CLOCKWISE)
             depth = np.asarray(self.__oSample.depth_image, dtype=np.uint8).view(dtype=np.float32).reshape(self.__oSample.depth_height, self.__oSample.depth_width)
             depth = (depth*65535/float(self.__oSample.depth_scale)).astype(np.uint16)
+            depth = cv2.rotate(depth, cv2.ROTATE_90_CLOCKWISE)
             self.__oDepthImg = cv2.resize(depth, dsize=(
                     self.__oSample.width, self.__oSample.height), interpolation=cv2.INTER_NEAREST)
             print("fx, fy, cx, cy: ", self.__oSample.fl_x, self.__oSample.fl_y, self.__oSample.cx, self.__oSample.cy)
