@@ -7,6 +7,7 @@ from datatopic.iPhoneImgTopic import iPhoneImg, iPhoneCaptureFrame
 from dataclasses import dataclass
 import cv2, os 
 import numpy as np
+import time
 
 class CNerfCapture():
     def __init__(self):
@@ -23,7 +24,7 @@ class CNerfCapture():
             </Domain> \
         </CycloneDDS> \
         """
-        self.__strResultPath = "./results/"
+        self.__strResultPath = "./results/" + time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()) + "/"
         self.__oImg = None
         self.__oDepthImg = None
         self.__uWriteIdx = 0
@@ -45,30 +46,30 @@ class CNerfCapture():
         print("Close.")
 
     def Read(self, readOutData:iPhoneImg) -> bool:
-        oSample = self.__oReader.read_next()
-        if(oSample):
+        self.__oSample = self.__oReader.read_next()
+        if(self.__oSample):
             print("Frame received!")
-            readOutData.FocalLengthX = oSample.fl_x
-            readOutData.FocalLengthY = oSample.fl_y
-            readOutData.CX = oSample.cx
-            readOutData.CY = oSample.cy
-            readOutData.Transform = oSample.transform_matrix
-            readOutData.Width = oSample.width
-            readOutData.Height = oSample.height
-            readOutData.Img = oSample.image
-            readOutData.HasDepth = oSample.has_depth
-            readOutData.DepthWidth = oSample.depth_width
-            readOutData.DepthHeight = oSample.depth_height
-            readOutData.DepthScale = oSample.depth_scale
-            readOutData.DepthImg = oSample.depth_image
+            readOutData.FocalLengthX = self.__oSample.fl_x
+            readOutData.FocalLengthY = self.__oSample.fl_y
+            readOutData.CX = self.__oSample.cx
+            readOutData.CY = self.__oSample.cy
+            readOutData.Transform = self.__oSample.transform_matrix
+            readOutData.Width = self.__oSample.width
+            readOutData.Height = self.__oSample.height
+            readOutData.Img = self.__oSample.image
+            readOutData.HasDepth = self.__oSample.has_depth
+            readOutData.DepthWidth = self.__oSample.depth_width
+            readOutData.DepthHeight = self.__oSample.depth_height
+            readOutData.DepthScale = self.__oSample.depth_scale
+            readOutData.DepthImg = self.__oSample.depth_image
             
-            self.__oImg = np.asarray(oSample.image, dtype=np.uint8).reshape(oSample.height, oSample.width, 3)
-            depth = np.asarray(oSample.depth_image, dtype=np.uint8).view(dtype=np.float32).reshape(oSample.depth_height, oSample.depth_width)
-            depth = (depth*65535/float(oSample.depth_scale)).astype(np.uint16)
+            self.__oImg = np.asarray(self.__oSample.image, dtype=np.uint8).reshape(self.__oSample.height, self.__oSample.width, 3)
+            depth = np.asarray(self.__oSample.depth_image, dtype=np.uint8).view(dtype=np.float32).reshape(self.__oSample.depth_height, self.__oSample.depth_width)
+            depth = (depth*65535/float(self.__oSample.depth_scale)).astype(np.uint16)
             self.__oDepthImg = cv2.resize(depth, dsize=(
-                    oSample.width, oSample.height), interpolation=cv2.INTER_NEAREST)
-            print("fx, fy, cx, cy: ", oSample.fl_x, oSample.fl_y, oSample.cx, oSample.cy)
-            print("Transform: ", oSample.transform_matrix)
+                    self.__oSample.width, self.__oSample.height), interpolation=cv2.INTER_NEAREST)
+            print("fx, fy, cx, cy: ", self.__oSample.fl_x, self.__oSample.fl_y, self.__oSample.cx, self.__oSample.cy)
+            print("Transform: ", self.__oSample.transform_matrix)
             return True
         return False
 
@@ -80,6 +81,11 @@ class CNerfCapture():
             return False
         cv2.imwrite(self.__strResultPath + "img_" + str(self.__uWriteIdx) + ".png", cv2.cvtColor(self.__oImg, cv2.COLOR_RGB2BGR))
         cv2.imwrite(self.__strResultPath + "depth_" + str(self.__uWriteIdx) + ".png", self.__oDepthImg)
+        with open(self.__strResultPath + "camera_params.csv", "a") as file:
+            file.write(f"img_{self.__uWriteIdx}.png,{self.__oSample.fl_x},{self.__oSample.fl_y},{self.__oSample.cx},{self.__oSample.cy}\n")
+        
+        with open(self.__strResultPath + "camera_transform.csv", "a") as file:
+            file.write(f"img_{self.__uWriteIdx}.png,{self.__oSample.transform_matrix[0]},{self.__oSample.transform_matrix[1]},{self.__oSample.transform_matrix[2]},{self.__oSample.transform_matrix[3]},{self.__oSample.transform_matrix[4]},{self.__oSample.transform_matrix[5]},{self.__oSample.transform_matrix[6]},{self.__oSample.transform_matrix[7]},{self.__oSample.transform_matrix[8]},{self.__oSample.transform_matrix[9]},{self.__oSample.transform_matrix[10]},{self.__oSample.transform_matrix[11]}\n")
         self.__uWriteIdx += 1
         return True
     def Control(self, eInformation:int, Value=None) -> bool:
