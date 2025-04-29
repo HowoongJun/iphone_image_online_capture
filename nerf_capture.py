@@ -67,7 +67,8 @@ class CNerfCapture():
             depth = (depth*65535/float(oSample.depth_scale)).astype(np.uint16)
             self.__oDepthImg = cv2.resize(depth, dsize=(
                     oSample.width, oSample.height), interpolation=cv2.INTER_NEAREST)
-            
+            print("fx, fy, cx, cy: ", oSample.fl_x, oSample.fl_y, oSample.cx, oSample.cy)
+            print("Transform: ", oSample.transform_matrix)
             return True
         return False
 
@@ -77,7 +78,7 @@ class CNerfCapture():
     def Write(self) -> bool:
         if(self.__oImg is None or self.__oDepthImg is None):
             return False
-        cv2.imwrite(self.__strResultPath + "img_" + str(self.__uWriteIdx) + ".png", self.__oImg)
+        cv2.imwrite(self.__strResultPath + "img_" + str(self.__uWriteIdx) + ".png", cv2.cvtColor(self.__oImg, cv2.COLOR_RGB2BGR))
         cv2.imwrite(self.__strResultPath + "depth_" + str(self.__uWriteIdx) + ".png", self.__oDepthImg)
         self.__uWriteIdx += 1
         return True
